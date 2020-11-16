@@ -27,9 +27,12 @@
 GLuint axisList;
 
 int AXIS_SIZE= 200;
-bool axisEnabled= true;
-int launch_range = 80;
+bool axisEnabled= false;
+int LAUNCH_RANGE = 80;
 const int particleLength = 50;
+
+GLint G = 9.8;
+GLint AIR_RES = 0.1;
 
 double myRandom();
 
@@ -46,8 +49,10 @@ public:
   // Initial Position
   GLfloat x , y, z;
 
-  // Initial velocity
+  // Initial velocity and direction of particle
   GLfloat vx, vy, vz;
+  GLint dirx;
+  GLint dirz;
 
   // Initial size
   GLfloat size;
@@ -65,13 +70,21 @@ void initParticle(int index) {
 
   particles[index].r = 1.0;
 
-  particles[index].x = myRandom() * launch_range - (launch_range / 2);
+  particles[index].x = myRandom() * LAUNCH_RANGE - (LAUNCH_RANGE / 2);
   particles[index].y = 0.0;
-  particles[index].z = myRandom() * launch_range - (launch_range / 2);
+  particles[index].z = myRandom() * LAUNCH_RANGE - (LAUNCH_RANGE / 2);
 
-  particles[index].vx = myRandom() * 10;
-  particles[index].vy = myRandom() * 10;
-  particles[index].vz = myRandom() * 10;
+  particles[index].vx = myRandom() * 2 - 1;
+  particles[index].vy = myRandom() * 5;
+  particles[index].vz = myRandom() * 2 - 1;
+
+  if (particles[index].vx < 0) {
+    particles[index].dirx = -1;
+  } else particles[index].dirx = 1;
+
+  if (particles[index].vz < 0) {
+    particles[index].dirz = -1;
+  } else particles[index].dirz = 1;
 
   particles[index].size = 5;
   particles[index].lifeLength = 1;
@@ -99,7 +112,7 @@ double myRandom()
 void display()
 {
   glLoadIdentity();
-  gluLookAt(0.0, 800.0, 800.0,
+  gluLookAt(0.0, 0.0, 600.0,
             0.0, 0.0, 0.0,
             0.0, 1.0, 0.0);
   // Clear the screen
@@ -164,28 +177,68 @@ void animations()
     particles[index].lifeLength++;
 
     if (particles[index].lifeLength > 0) {
+
+      // Updating size and color
       particles[index].size -= 0.05;
-      particles[index].r -= 0.01;
+      particles[index].g += 0.01;
+      particles[index].b += 0.01;
 
-      particles[index].x += particles[index].vx - 2;
-      particles[index].y = particles[index].vy - 9.8 / 2;
-      particles[index].z += particles[index].vz - 2;
+      // Uodating y position and y velocity
+      particles[index].y += (particles[index].vy - G / 2);
+      particles[index].vy -= G;
 
-      particles[index].vx -= 2;
-      particles[index].vy -= 9.8;
-      particles[index].vz -= 2;
-
+      // Handling bounces
       if (particles[index].y < 0) {
-        particles[index].vy /= -2;
+        particles[index].vy -= G / 4;
         particles[index].y = 0;
       }
 
-      if (particles[index].vx < 0) particles[index].vx = 0;
-      if (particles[index].vy < 0) particles[index].vy = 0;
-      if (particles[index].vz < 0) particles[index].vz = 0;
+      // Updating x, z and vx, vz according to initial direction
+      if (particles[index].dirx == 1) {
 
-      if (particles[index].vx == 0 && particles[index].vy == 0 &&
-          particles[index].vz == 0) {
+        particles[index].x += (particles[index].vx - AIR_RES / 2);
+        particles[index].vx -= AIR_RES;
+
+        if (particles[index].vx < 0) particles[index].vx = 0;
+
+        if (particles[index].dirz == 1) {
+
+          particles[index].z += (particles[index].vz - AIR_RES / 2);
+          particles[index].vz -= AIR_RES;
+
+          if (particles[index].vz < 0) particles[index].vz = 0;
+
+        } else {
+          particles[index].z += (particles[index].vz + AIR_RES / 2);
+          particles[index].vz += AIR_RES;
+
+          if (particles[index].vz > 0) particles[index].vz = 0;
+        }
+
+      } else {
+
+        particles[index].x += (particles[index].vx + AIR_RES / 2);
+        particles[index].vx += AIR_RES;
+
+        if (particles[index].vx > 0) particles[index].vx = 0;
+
+        if (particles[index].dirz == 1) {
+
+          particles[index].z += (particles[index].vz - AIR_RES / 2);
+          particles[index].vz -= AIR_RES;
+
+          if (particles[index].vz < 0) particles[index].vz = 0;
+
+        } else {
+          particles[index].z += (particles[index].vz + AIR_RES / 2);
+          particles[index].vz += AIR_RES;
+
+          if (particles[index].vz > 0) particles[index].vz = 0;
+        }
+
+      }
+
+      if (particles[index].vx == 0 && particles[index].vz == 0) {
         particles[index].lifeLength = -100;
       }
 
