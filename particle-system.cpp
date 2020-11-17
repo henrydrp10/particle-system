@@ -26,14 +26,17 @@
 // Display list for coordinate axis, and attributes
 GLuint axisList;
 int AXIS_SIZE= 200;
-bool axisEnabled= false;
+bool axisEnabled= true;
 
 // Range of are where fireworks will be launched from
 int LAUNCH_RANGE = 80;
 
 // Number of particles in the array (they will be reused
 // and recycled when dead so it seems that there are much more)
-const int particleLength = 1;
+const int particleLength = 2;
+
+// Forces that will act as acceleration in multiple dimensions
+GLfloat gravity = -0.0098;         // (x100 m/s^2)
 
 
 double myRandom();
@@ -82,13 +85,17 @@ void initParticle(int index) {
   particles[index].y = 0.0;
   particles[index].z = myRandom() * LAUNCH_RANGE - (LAUNCH_RANGE / 2);
 
-  // Initial velocity of the particle when launched
+  // printf("(%f, %f)\n", particles[index].x, particles[index].z);
+
+  // Initial velocity of the particle when launched (x100 m/s)
   particles[index].vx = 0;
-  particles[index].vy = myRandom() * 5;
+  particles[index].vy = myRandom() * 0.3 + 0.4;   // Range: 40 - 70 m/s
   particles[index].vz = 0;
 
+  // printf("%f\n", particles[index].vy);
+
   // Size, and time alive (if negative, time to be reborn)
-  particles[index].size = 5;
+  particles[index].size = 1;
   particles[index].lifeLength = 1;
 
 }
@@ -111,18 +118,49 @@ double myRandom()
 }
 
 ///////////////////////////////////////////////
+// Initialise all the particles in the array
+
+void drawFloorPlane() {
+
+  // Draw the blue floor
+  glBegin(GL_POLYGON);
+    glColor3f(0.3, 1.0, 1.0);
+    glVertex3f(-40.0, 0.0, -40.0);
+    glVertex3f(-40.0, 0.0,  40.0);
+    glVertex3f( 40.0, 0.0,  40.0);
+    glVertex3f( 40.0, 0.0, -40.0);
+  glEnd();
+
+  // Draw the lines
+  for (int index = -30; index < 40; index += 10) {
+    glBegin(GL_LINES);
+      glColor3f(0.5, 0.5, 0.5);
+      glVertex3f(index, 0, -40);
+      glVertex3f(index, 0, 40);
+      glVertex3f(-40, 0, index);
+      glVertex3f(40, 0, index);
+    glEnd();
+  }
+
+}
+
+///////////////////////////////////////////////
 
 void display()
 {
   glLoadIdentity();
 
   // Position and direction of the camera
-  gluLookAt(0.0, 0.0, 300.0,
+  gluLookAt(300.0, 0.0, 300.0,
             0.0, 0.0, 0.0,
             0.0, 1.0, 0.0);
 
   // Clear the screen
   glClear(GL_COLOR_BUFFER_BIT);
+
+  // Draw the floor (launch area)
+  drawFloorPlane();
+
   // If enabled, draw coordinate axis
   if(axisEnabled) glCallList(axisList);
 
@@ -176,7 +214,25 @@ void reshape(int width, int height)
 void animations()
 {
 
+  // Loop through all particles
+  for (int index = 0; index < particleLength; index++) {
 
+    particles[index].lifeLength++;
+
+    if (particles[index].lifeLength == 0) {
+      initParticle(index);
+    } else if (particles[index].lifeLength > 0) {
+      // Updating position and velocity of y direction
+      // (Only shooting upwards for now)
+      particles[index].y += particles[index].vy + gravity / 2;
+      particles[index].vy += gravity;
+
+      // printf("%f\n", particles[index].vy);
+
+      if (particles[index].y < -1) particles[index].lifeLength = -100;
+    }
+
+  }
 
   glutPostRedisplay();
 
