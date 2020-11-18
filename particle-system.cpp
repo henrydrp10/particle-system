@@ -217,10 +217,14 @@ void animations()
   // Loop through all particles
   for (int index = 0; index < particleLength; index++) {
 
+    // Time passes
     particles[index].lifeLength++;
 
+    // If time to be born
     if (particles[index].lifeLength == 0) {
       initParticle(index);
+
+      // If alive
     } else if (particles[index].lifeLength > 0) {
       // Updating position and velocity of y direction
       // (Only shooting upwards for now)
@@ -229,6 +233,7 @@ void animations()
 
       // printf("%f\n", particles[index].vy);
 
+      // Time to die
       if (particles[index].y < 0) particles[index].lifeLength = -100;
     }
 
