@@ -229,7 +229,7 @@ void animations()
 
       // printf("%f\n", particles[index].vy);
 
-      if (particles[index].y < -1) particles[index].lifeLength = -100;
+      if (particles[index].y < 0) particles[index].lifeLength = -100;
     }
 
   }
