@@ -36,7 +36,7 @@ int LAUNCH_RANGE = 80;
 const int particleLength = 2;
 
 // Forces that will act as acceleration in multiple dimensions
-GLfloat gravity = -0.0098;         // (x100 m/s^2)
+GLfloat gravity = -0.01;         
 
 
 double myRandom();
@@ -151,7 +151,7 @@ void display()
   glLoadIdentity();
 
   // Position and direction of the camera
-  gluLookAt(300.0, 0.0, 300.0,
+  gluLookAt(100.0, 0.0, 100.0,
             0.0, 0.0, 0.0,
             0.0, 1.0, 0.0);
 
@@ -228,7 +228,7 @@ void animations()
     } else if (particles[index].lifeLength > 0) {
       // Updating position and velocity of y direction
       // (Only shooting upwards for now)
-      particles[index].y += particles[index].vy + gravity / 2;
+      particles[index].y += particles[index].vy;
       particles[index].vy += gravity;
 
       // printf("%f\n", particles[index].vy);
