@@ -31,9 +31,12 @@ bool axisEnabled= true;
 // Range of are where fireworks will be launched from
 int LAUNCH_RANGE = 80;
 
-// Number of particles in the array (they will be reused
+// Number of main particles in the array (they will be reused
 // and recycled when dead so it seems that there are much more)
 const int particleLength = 20;
+
+// 10 explosion particles per main particle
+const int explosionPartLength = particleLength * 10;
 
 // Forces that will act as acceleration in multiple dimensions
 GLfloat gravity = -0.01;         
@@ -65,6 +68,7 @@ public:
 };
 
 Particle particles[particleLength];
+Particle explosionParticles[explosionPartLength];
 
 ///////////////////////////////////////////////
 // Method to initialise a single particle of the array
@@ -85,15 +89,70 @@ void initParticle(int index) {
   // printf("(%f, %f)\n", particles[index].x, particles[index].z);
 
   // Initial velocity of the particle when launched 
-  particles[index].vx = 0;
+  particles[index].vx = myRandom() * 0.1 - 0.05;
   particles[index].vy = myRandom() * 0.3 + 0.7;   
-  particles[index].vz = 0;
+  particles[index].vz = myRandom() * 0.1 - 0.05;
 
   // printf("%f\n", particles[index].vy);
 
   // Size, and time alive (if negative, time to be reborn)
   particles[index].size = 1;
   particles[index].lifeLength = 0;
+
+}
+
+///////////////////////////////////////////////
+// Method to initialise the explosionParticles
+
+void initExplosionParticles(int index) {
+
+  for (int i = index * 10; i < index * 10 + 10; i++) {
+    
+    // Initial color of the particle -- red at the moment
+    explosionParticles[i].r = 1.0;
+    explosionParticles[i].g = 0.0;
+    explosionParticles[i].b = 0.0;
+
+    // Starting Position (where main particle died)
+    explosionParticles[i].x = particles[index].x;
+    explosionParticles[i].y = particles[index].y;
+    explosionParticles[i].z = particles[index].z;
+
+    // Initial velocity of the particle when exploded 
+    explosionParticles[i].vx = (myRandom() * 0.1 - 0.05) * 2; 
+    explosionParticles[i].vy = (myRandom() * 0.3 + 0.7) / 2;   
+    explosionParticles[i].vz = (myRandom() * 0.1 - 0.05) * 2;
+
+
+    // Size, and time alive (if negative, time to be reborn)
+    explosionParticles[i].size = 0.6;
+    explosionParticles[i].lifeLength = 60;
+
+  }
+
+}
+
+///////////////////////////////////////////////
+// Method to update the explosionParticles
+
+void updateExplosionParticles(int index) {
+
+  for (int i = index * 10; i < index * 10 + 10; i++) {
+    
+    explosionParticles[i].lifeLength--;
+
+    if (explosionParticles[i].lifeLength >= 0) {
+      
+      explosionParticles[i].x += explosionParticles[i].vx;
+      explosionParticles[i].y += explosionParticles[i].vy;
+      explosionParticles[i].z += explosionParticles[i].vz;
+
+      explosionParticles[i].vy += gravity;
+
+    }
+    
+
+  }
 
 }
 
@@ -170,6 +229,18 @@ void display()
       glColor3f(particles[index].r, particles[index].g, particles[index].b);
       glutSolidSphere(particles[index].size, 150, 150);
       glPopMatrix();
+    } else {
+      for (int i = index * 10; i < index * 10 + 10; i++) {
+        if (explosionParticles[i].lifeLength >= 0) {
+          glPushMatrix();
+          glTranslatef(explosionParticles[i].x, explosionParticles[i].y, explosionParticles[i].z);
+          glColor3f(explosionParticles[i].r, explosionParticles[i].g, explosionParticles[i].b);
+          glutSolidSphere(explosionParticles[i].size, 150, 150);
+          glPopMatrix();
+        }
+          
+      }
+      
     }
   }
 
@@ -226,18 +297,30 @@ void animations()
       // If alive
     } else if (particles[index].lifeLength > 0) {
 
-      // Updating position and velocity of y direction
-      // (Only shooting upwards for now)
+      // Updating position and velocity 
       
+      particles[index].x += particles[index].vx;
       particles[index].y += particles[index].vy;
+      particles[index].z += particles[index].vz;
+
       particles[index].vy += gravity;
 
       // Time to die
-      if (particles[index].vy < 0) particles[index].lifeLength = myRandom() * 100 - 100;
+      if (particles[index].vy < 0) {
+        particles[index].lifeLength = myRandom() * 100 - 100;
+
+        initExplosionParticles(index);
+      }
+
+    } else {
+
+      updateExplosionParticles(index);
+      
 
     }
 
   }
+  
 
   glutPostRedisplay();
 
