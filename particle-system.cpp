@@ -33,7 +33,7 @@ int LAUNCH_RANGE = 80;
 
 // Number of particles in the array (they will be reused
 // and recycled when dead so it seems that there are much more)
-const int particleLength = 2;
+const int particleLength = 20;
 
 // Forces that will act as acceleration in multiple dimensions
 GLfloat gravity = -0.01;         
@@ -55,9 +55,6 @@ public:
 
   // Velocity of the particle
   GLfloat vx, vy, vz;
-
-  // Acceleration of the particle
-  // Glfloat ax, ay, az;
 
   // Initial size
   GLfloat size;
@@ -87,16 +84,16 @@ void initParticle(int index) {
 
   // printf("(%f, %f)\n", particles[index].x, particles[index].z);
 
-  // Initial velocity of the particle when launched (x100 m/s)
+  // Initial velocity of the particle when launched 
   particles[index].vx = 0;
-  particles[index].vy = myRandom() * 0.3 + 0.4;   // Range: 40 - 70 m/s
+  particles[index].vy = myRandom() * 0.3 + 0.7;   
   particles[index].vz = 0;
 
   // printf("%f\n", particles[index].vy);
 
   // Size, and time alive (if negative, time to be reborn)
   particles[index].size = 1;
-  particles[index].lifeLength = 1;
+  particles[index].lifeLength = 0;
 
 }
 
@@ -151,7 +148,7 @@ void display()
   glLoadIdentity();
 
   // Position and direction of the camera
-  gluLookAt(100.0, 0.0, 100.0,
+  gluLookAt(100.0, 60.0, 100.0,
             0.0, 0.0, 0.0,
             0.0, 1.0, 0.0);
 
@@ -168,9 +165,11 @@ void display()
   // to the translations and colour changes.
   for(int index = 0; index < particleLength; index ++) {
     if (particles[index].lifeLength >= 0) {
+      glPushMatrix();
       glTranslatef(particles[index].x, particles[index].y, particles[index].z);
       glColor3f(particles[index].r, particles[index].g, particles[index].b);
       glutSolidSphere(particles[index].size, 150, 150);
+      glPopMatrix();
     }
   }
 
@@ -226,15 +225,16 @@ void animations()
 
       // If alive
     } else if (particles[index].lifeLength > 0) {
+
       // Updating position and velocity of y direction
       // (Only shooting upwards for now)
+      
       particles[index].y += particles[index].vy;
       particles[index].vy += gravity;
 
-      // printf("%f\n", particles[index].vy);
-
       // Time to die
-      if (particles[index].y < 0) particles[index].lifeLength = -100;
+      if (particles[index].vy < 0) particles[index].lifeLength = myRandom() * 100 - 100;
+
     }
 
   }
