@@ -31,9 +31,12 @@ bool axisEnabled= true;
 // Range of are where fireworks will be launched from
 int LAUNCH_RANGE = 80;
 
-// Number of particles in the array (they will be reused
+// Number of main particles in the array (they will be reused
 // and recycled when dead so it seems that there are much more)
 const int particleLength = 20;
+
+// 10 explosion particles per main particle
+const int explosionPartLength = particleLength * 10;
 
 // Forces that will act as acceleration in multiple dimensions
 GLfloat gravity = -0.01;         
@@ -48,10 +51,13 @@ class Particle {
 public:
 
   // Color rgb -- starting black, fade to white
-  GLfloat r, g, b;
+  GLfloat r, g, b, alpha;
 
   // Position of the particle
   GLfloat x , y, z;
+
+  // Old Position of the particle
+  GLfloat ox , oy, oz;
 
   // Velocity of the particle
   GLfloat vx, vy, vz;
@@ -65,6 +71,7 @@ public:
 };
 
 Particle particles[particleLength];
+Particle explosionParticles[explosionPartLength];
 
 ///////////////////////////////////////////////
 // Method to initialise a single particle of the array
@@ -75,6 +82,7 @@ void initParticle(int index) {
   particles[index].r = 0.0;
   particles[index].g = 0.0;
   particles[index].b = 0.0;
+  particles[index].alpha = 1.0;
 
   // This defines the area of possible launch:
   // (-LAUNCH_RANGE/2, -LAUNCH_RANGE/2) to (LAUNCH_RANGE/2, LAUNCH_RANGE/2)
@@ -82,18 +90,88 @@ void initParticle(int index) {
   particles[index].y = 0.0;
   particles[index].z = myRandom() * LAUNCH_RANGE - (LAUNCH_RANGE / 2);
 
+  particles[index].ox = myRandom() * LAUNCH_RANGE - (LAUNCH_RANGE / 2);
+  particles[index].oy = 0.0;
+  particles[index].oz = myRandom() * LAUNCH_RANGE - (LAUNCH_RANGE / 2);
+
   // printf("(%f, %f)\n", particles[index].x, particles[index].z);
 
   // Initial velocity of the particle when launched 
-  particles[index].vx = 0;
+  particles[index].vx = myRandom() * 0.1 - 0.05;
   particles[index].vy = myRandom() * 0.3 + 0.7;   
-  particles[index].vz = 0;
+  particles[index].vz = myRandom() * 0.1 - 0.05;
 
   // printf("%f\n", particles[index].vy);
 
   // Size, and time alive (if negative, time to be reborn)
   particles[index].size = 1;
   particles[index].lifeLength = 0;
+
+}
+
+///////////////////////////////////////////////
+// Method to initialise the explosionParticles
+
+void initExplosionParticles(int index) {
+
+  for (int i = index * 10; i < index * 10 + 10; i++) {
+    
+    // Initial color of the particle -- red at the moment
+    explosionParticles[i].r = 1.0;
+    explosionParticles[i].g = 0.0;
+    explosionParticles[i].b = 0.0;
+    explosionParticles[i].alpha = 1.0;
+
+    // Starting Position (where main particle died)
+    explosionParticles[i].x = particles[index].x;
+    explosionParticles[i].y = particles[index].y;
+    explosionParticles[i].z = particles[index].z;
+
+    explosionParticles[i].ox = particles[index].x;
+    explosionParticles[i].oy = particles[index].y;
+    explosionParticles[i].oz = particles[index].z;
+
+    // Initial velocity of the particle when exploded 
+    explosionParticles[i].vx = (myRandom() * 0.1 - 0.05) * 5; 
+    explosionParticles[i].vy = (myRandom() * 0.3 + 0.7) / 1.5;   
+    explosionParticles[i].vz = (myRandom() * 0.1 - 0.05) * 5;
+
+
+    // Size, and time alive (if negative, time to be reborn)
+    explosionParticles[i].size = 1;
+    explosionParticles[i].lifeLength = 60;
+
+  }
+
+}
+
+///////////////////////////////////////////////
+// Method to update the explosionParticles
+
+void updateExplosionParticles(int index) {
+
+  for (int i = index * 10; i < index * 10 + 10; i++) {
+    
+    explosionParticles[i].lifeLength--;
+
+    if (explosionParticles[i].lifeLength >= 0) {
+
+      explosionParticles[i].alpha -= 0.01;
+
+      explosionParticles[i].ox = explosionParticles[i].x;
+      explosionParticles[i].oy = explosionParticles[i].y;
+      explosionParticles[i].oz = explosionParticles[i].z;
+      
+      explosionParticles[i].x += explosionParticles[i].vx;
+      explosionParticles[i].y += explosionParticles[i].vy;
+      explosionParticles[i].z += explosionParticles[i].vz;
+
+      explosionParticles[i].vy += gravity;
+
+    }
+    
+
+  }
 
 }
 
@@ -148,12 +226,12 @@ void display()
   glLoadIdentity();
 
   // Position and direction of the camera
-  gluLookAt(100.0, 60.0, 100.0,
-            0.0, 0.0, 0.0,
+  gluLookAt(60.0, 30.0, 60.0,
+            0.0, 30.0, 0.0,
             0.0, 1.0, 0.0);
 
   // Clear the screen
-  glClear(GL_COLOR_BUFFER_BIT);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   // Draw the floor (launch area)
   drawFloorPlane();
@@ -163,13 +241,26 @@ void display()
 
   // Here, we will display the particle, modified according
   // to the translations and colour changes.
+  glEnable(GL_BLEND);
+  glBlendFunc (GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
   for(int index = 0; index < particleLength; index ++) {
     if (particles[index].lifeLength >= 0) {
       glPushMatrix();
       glTranslatef(particles[index].x, particles[index].y, particles[index].z);
-      glColor3f(particles[index].r, particles[index].g, particles[index].b);
+      glColor4f(particles[index].r, particles[index].g, particles[index].b, particles[index].alpha);
       glutSolidSphere(particles[index].size, 150, 150);
       glPopMatrix();
+    } else {
+      glBegin(GL_LINES);
+      for (int i = index * 10; i < index * 10 + 10; i++) {
+        if (explosionParticles[i].lifeLength >= 0 && explosionParticles[i].alpha > 0) {
+          glColor4f(explosionParticles[i].r, explosionParticles[i].g, explosionParticles[i].b, explosionParticles[i].alpha);
+          glVertex3f(explosionParticles[i].ox, explosionParticles[i].oy, explosionParticles[i].oz);
+          glVertex3f(explosionParticles[i].x, explosionParticles[i].y, explosionParticles[i].z);
+        }
+          
+      }
+      glEnd();
     }
   }
 
@@ -226,18 +317,33 @@ void animations()
       // If alive
     } else if (particles[index].lifeLength > 0) {
 
-      // Updating position and velocity of y direction
-      // (Only shooting upwards for now)
+      // Updating size, position and velocity 
+
+      particles[index].size -= 0.01;
+      particles[index].alpha -= 0.01;
       
+      particles[index].x += particles[index].vx;
       particles[index].y += particles[index].vy;
+      particles[index].z += particles[index].vz;
+
       particles[index].vy += gravity;
 
       // Time to die
-      if (particles[index].vy < 0) particles[index].lifeLength = myRandom() * 100 - 100;
+      if (particles[index].vy < 0) {
+        particles[index].lifeLength = myRandom() * 100 - 100;
+
+        initExplosionParticles(index);
+      }
+
+    } else {
+
+      updateExplosionParticles(index);
+      
 
     }
 
   }
+  
 
   glutPostRedisplay();
 
@@ -270,7 +376,7 @@ void initGraphics(int argc, char *argv[])
   glutInit(&argc, argv);
   glutInitWindowSize(800, 600);
   glutInitWindowPosition(100, 100);
-  glutInitDisplayMode(GLUT_DOUBLE);
+  glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_ALPHA);
   glutCreateWindow("COMP37111 Particles");
   initParticles();
   glutDisplayFunc(display);
