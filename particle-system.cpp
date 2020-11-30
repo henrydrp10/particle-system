@@ -23,6 +23,14 @@
   #include <GL/glut.h>
 #endif
 
+#define NORTH_VIEW 1
+#define SOUTH_VIEW 2
+#define EAST_VIEW 3
+#define WEST_VIEW 4
+
+// Current view
+int view = NORTH_VIEW;
+
 // Display list for coordinate axis, and attributes
 GLuint axisList;
 int AXIS_SIZE= 200;
@@ -39,7 +47,11 @@ const int particleLength = 20;
 const int explosionPartLength = particleLength * 10;
 
 // Forces that will act as acceleration in multiple dimensions
-GLfloat gravity = -0.01;         
+GLfloat gravity = -0.01;
+
+// Wind that will affect the direction of the particles
+GLfloat xWind = 0;
+GLfloat zWind = 0;
 
 
 double myRandom();
@@ -96,9 +108,9 @@ void initParticle(int index) {
 
   // printf("(%f, %f)\n", particles[index].x, particles[index].z);
 
-  // Initial velocity of the particle when launched 
+  // Initial velocity of the particle when launched
   particles[index].vx = myRandom() * 0.1 - 0.05;
-  particles[index].vy = myRandom() * 0.3 + 0.7;   
+  particles[index].vy = myRandom() * 0.3 + 0.7;
   particles[index].vz = myRandom() * 0.1 - 0.05;
 
   // printf("%f\n", particles[index].vy);
@@ -115,7 +127,7 @@ void initParticle(int index) {
 void initExplosionParticles(int index) {
 
   for (int i = index * 10; i < index * 10 + 10; i++) {
-    
+
     // Initial color of the particle -- red at the moment
     explosionParticles[i].r = 1.0;
     explosionParticles[i].g = 0.0;
@@ -131,14 +143,14 @@ void initExplosionParticles(int index) {
     explosionParticles[i].oy = particles[index].y;
     explosionParticles[i].oz = particles[index].z;
 
-    // Initial velocity of the particle when exploded 
-    explosionParticles[i].vx = (myRandom() * 0.1 - 0.05) * 5; 
-    explosionParticles[i].vy = (myRandom() * 0.3 + 0.7) / 1.5;   
+    // Initial velocity of the particle when exploded
+    explosionParticles[i].vx = (myRandom() * 0.1 - 0.05) * 5;
+    explosionParticles[i].vy = (myRandom() * 0.3 + 0.7) / 1.5;
     explosionParticles[i].vz = (myRandom() * 0.1 - 0.05) * 5;
 
 
     // Size, and time alive (if negative, time to be reborn)
-    explosionParticles[i].size = 1;
+    explosionParticles[i].size = 4;
     explosionParticles[i].lifeLength = 60;
 
   }
@@ -151,7 +163,7 @@ void initExplosionParticles(int index) {
 void updateExplosionParticles(int index) {
 
   for (int i = index * 10; i < index * 10 + 10; i++) {
-    
+
     explosionParticles[i].lifeLength--;
 
     if (explosionParticles[i].lifeLength >= 0) {
@@ -161,15 +173,17 @@ void updateExplosionParticles(int index) {
       explosionParticles[i].ox = explosionParticles[i].x;
       explosionParticles[i].oy = explosionParticles[i].y;
       explosionParticles[i].oz = explosionParticles[i].z;
-      
+
       explosionParticles[i].x += explosionParticles[i].vx;
       explosionParticles[i].y += explosionParticles[i].vy;
       explosionParticles[i].z += explosionParticles[i].vz;
 
+      explosionParticles[i].vx += xWind;
       explosionParticles[i].vy += gravity;
+      explosionParticles[i].vz += zWind;
 
     }
-    
+
 
   }
 
@@ -220,18 +234,47 @@ void drawFloorPlane() {
 }
 
 ///////////////////////////////////////////////
+// Initialise all the particles in the array
+
+void setView() {
+
+
+  glLoadIdentity();
+
+  switch (view) {
+    case NORTH_VIEW:
+      gluLookAt(0.0, 30.0, 60.0,
+                0.0, 30.0, 0.0,
+                0.0, 1.0, 0.0);
+      break;
+    case SOUTH_VIEW:
+      gluLookAt(0.0, 30.0, -60.0,
+                0.0, 30.0, 0.0,
+                0.0, 1.0, 0.0);
+      break;
+    case EAST_VIEW:
+      gluLookAt(60.0, 30.0, 0.0,
+                0.0, 30.0, 0.0,
+                0.0, 1.0, 0.0);
+      break;
+    case WEST_VIEW:
+      gluLookAt(-60.0, 30.0, 0.0,
+                0.0, 30.0, 0.0,
+                0.0, 1.0, 0.0);
+      break;
+  }
+
+}
+
+///////////////////////////////////////////////
 
 void display()
 {
-  glLoadIdentity();
-
-  // Position and direction of the camera
-  gluLookAt(60.0, 30.0, 60.0,
-            0.0, 30.0, 0.0,
-            0.0, 1.0, 0.0);
-
   // Clear the screen
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  // Set the view
+  setView();
 
   // Draw the floor (launch area)
   drawFloorPlane();
@@ -258,7 +301,7 @@ void display()
           glVertex3f(explosionParticles[i].ox, explosionParticles[i].oy, explosionParticles[i].oz);
           glVertex3f(explosionParticles[i].x, explosionParticles[i].y, explosionParticles[i].z);
         }
-          
+
       }
       glEnd();
     }
@@ -317,16 +360,18 @@ void animations()
       // If alive
     } else if (particles[index].lifeLength > 0) {
 
-      // Updating size, position and velocity 
+      // Updating size, position and velocity
 
       particles[index].size -= 0.01;
       particles[index].alpha -= 0.01;
-      
+
       particles[index].x += particles[index].vx;
       particles[index].y += particles[index].vy;
       particles[index].z += particles[index].vz;
 
+      particles[index].vx += xWind;
       particles[index].vy += gravity;
+      particles[index].vz += zWind;
 
       // Time to die
       if (particles[index].vy < 0) {
@@ -338,12 +383,12 @@ void animations()
     } else {
 
       updateExplosionParticles(index);
-      
+
 
     }
 
   }
-  
+
 
   glutPostRedisplay();
 
@@ -386,6 +431,60 @@ void initGraphics(int argc, char *argv[])
   makeAxes();
 }
 
+///////////////////////////////////////////////
+void menu (int menuentry) {
+  switch (menuentry) {
+  case 1: gravity = -0.007;
+          break;
+  case 2: gravity = -0.01;
+          break;
+  case 3: gravity = -0.013;
+          break;
+  case 4: xWind = 0.004;
+          zWind = 0;
+          break;
+  case 5: xWind = -0.004;
+          zWind = 0;
+          break;
+  case 6: xWind = 0;
+          zWind = -0.004;
+          break;
+  case 7: xWind = 0;
+          zWind = 0.004;
+          break;
+  case 8: view = NORTH_VIEW;
+          break;
+  case 9: view = SOUTH_VIEW;
+          break;
+  case 10: view = EAST_VIEW;
+          break;
+  case 11: view = WEST_VIEW;
+          break;
+  case 12: exit(0);
+  }
+} // menu() {
+
+
+///////////////////////////////////////////////
+void initMenu()
+{
+  glutCreateMenu (menu);
+  glutAddMenuEntry ("Low gravity", 1);
+  glutAddMenuEntry ("Medium gravity", 2);
+  glutAddMenuEntry ("High gravity", 3);
+  glutAddMenuEntry ("West wind", 4);
+  glutAddMenuEntry ("East wind", 5);
+  glutAddMenuEntry ("North wind", 6);
+  glutAddMenuEntry ("South wind", 7);
+  glutAddMenuEntry ("North view", 8);
+  glutAddMenuEntry ("South view", 9);
+  glutAddMenuEntry ("East view", 10);
+  glutAddMenuEntry ("West view", 11);
+  glutAddMenuEntry ("Exit", 12);
+  glutAttachMenu (GLUT_RIGHT_BUTTON);
+
+}
+
 /////////////////////////////////////////////////
 
 int main(int argc, char *argv[])
@@ -393,6 +492,7 @@ int main(int argc, char *argv[])
   // double f;
   srand(time(NULL));
   initGraphics(argc, argv);
+  initMenu();
   glEnable(GL_POINT_SMOOTH);
   glutMainLoop();
 }
