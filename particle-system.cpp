@@ -150,7 +150,7 @@ void initExplosionParticles(int index) {
 
 
     // Size, and time alive (if negative, time to be reborn)
-    explosionParticles[i].size = 4;
+    explosionParticles[i].size = 8;
     explosionParticles[i].lifeLength = 60;
 
   }
@@ -243,22 +243,22 @@ void setView() {
 
   switch (view) {
     case NORTH_VIEW:
-      gluLookAt(0.0, 30.0, 60.0,
+      gluLookAt(0.0, 30.0, 90.0,
                 0.0, 30.0, 0.0,
                 0.0, 1.0, 0.0);
       break;
     case SOUTH_VIEW:
-      gluLookAt(0.0, 30.0, -60.0,
+      gluLookAt(0.0, 30.0, -90.0,
                 0.0, 30.0, 0.0,
                 0.0, 1.0, 0.0);
       break;
     case EAST_VIEW:
-      gluLookAt(60.0, 30.0, 0.0,
+      gluLookAt(90.0, 30.0, 0.0,
                 0.0, 30.0, 0.0,
                 0.0, 1.0, 0.0);
       break;
     case WEST_VIEW:
-      gluLookAt(-60.0, 30.0, 0.0,
+      gluLookAt(-90.0, 30.0, 0.0,
                 0.0, 30.0, 0.0,
                 0.0, 1.0, 0.0);
       break;
@@ -434,23 +434,23 @@ void initGraphics(int argc, char *argv[])
 ///////////////////////////////////////////////
 void menu (int menuentry) {
   switch (menuentry) {
-  case 1: gravity = -0.007;
+  case 1: gravity = -0.005;
           break;
   case 2: gravity = -0.01;
           break;
-  case 3: gravity = -0.013;
+  case 3: gravity = -0.015;
           break;
-  case 4: xWind = 0.004;
+  case 4: xWind = 0.005;
           zWind = 0;
           break;
-  case 5: xWind = -0.004;
+  case 5: xWind = -0.005;
           zWind = 0;
           break;
   case 6: xWind = 0;
-          zWind = -0.004;
+          zWind = -0.005;
           break;
   case 7: xWind = 0;
-          zWind = 0.004;
+          zWind = 0.005;
           break;
   case 8: view = NORTH_VIEW;
           break;
