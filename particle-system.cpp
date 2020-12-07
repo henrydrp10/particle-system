@@ -41,17 +41,25 @@ int LAUNCH_RANGE = 80;
 
 // Number of main particles in the array (they will be reused
 // and recycled when dead so it seems that there are much more)
-const int particleLength = 20;
+const int particleLength = 150;
 
 // 10 explosion particles per main particle
 const int explosionPartLength = particleLength * 10;
 
 // Forces that will act as acceleration in multiple dimensions
-GLfloat gravity = -0.01;
+GLfloat gravity = -0.0098;
 
 // Wind that will affect the direction of the particles
 GLfloat xWind = 0;
 GLfloat zWind = 0;
+
+// wire or solid spheres
+bool solid = !true;
+
+// Color of the new particles that are spawned
+GLfloat red = 0.0;
+GLfloat green = 0.0;
+GLfloat blue = 0.0;
 
 
 double myRandom();
@@ -91,9 +99,9 @@ Particle explosionParticles[explosionPartLength];
 void initParticle(int index) {
 
   // Initial color of the particle -- black at the moment
-  particles[index].r = 0.0;
-  particles[index].g = 0.0;
-  particles[index].b = 0.0;
+  particles[index].r = red;
+  particles[index].g = green;
+  particles[index].b = blue;
   particles[index].alpha = 1.0;
 
   // This defines the area of possible launch:
@@ -174,9 +182,9 @@ void updateExplosionParticles(int index) {
       explosionParticles[i].oy = explosionParticles[i].y;
       explosionParticles[i].oz = explosionParticles[i].z;
 
-      explosionParticles[i].x += explosionParticles[i].vx;
-      explosionParticles[i].y += explosionParticles[i].vy;
-      explosionParticles[i].z += explosionParticles[i].vz;
+      explosionParticles[i].x += explosionParticles[i].vx + xWind / 2;
+      explosionParticles[i].y += explosionParticles[i].vy + gravity / 2;
+      explosionParticles[i].z += explosionParticles[i].vz + zWind / 2;
 
       explosionParticles[i].vx += xWind;
       explosionParticles[i].vy += gravity;
@@ -243,23 +251,23 @@ void setView() {
 
   switch (view) {
     case NORTH_VIEW:
-      gluLookAt(0.0, 30.0, 90.0,
-                0.0, 30.0, 0.0,
+      gluLookAt(0.0, 40.0, 120.0,
+                0.0, 40.0, 0.0,
                 0.0, 1.0, 0.0);
       break;
     case SOUTH_VIEW:
-      gluLookAt(0.0, 30.0, -90.0,
-                0.0, 30.0, 0.0,
+      gluLookAt(0.0, 40.0, -120.0,
+                0.0, 40.0, 0.0,
                 0.0, 1.0, 0.0);
       break;
     case EAST_VIEW:
-      gluLookAt(90.0, 30.0, 0.0,
-                0.0, 30.0, 0.0,
+      gluLookAt(120.0, 40.0, 0.0,
+                0.0, 40.0, 0.0,
                 0.0, 1.0, 0.0);
       break;
     case WEST_VIEW:
-      gluLookAt(-90.0, 30.0, 0.0,
-                0.0, 30.0, 0.0,
+      gluLookAt(-120.0, 40.0, 0.0,
+                0.0, 40.0, 0.0,
                 0.0, 1.0, 0.0);
       break;
   }
@@ -291,7 +299,7 @@ void display()
       glPushMatrix();
       glTranslatef(particles[index].x, particles[index].y, particles[index].z);
       glColor4f(particles[index].r, particles[index].g, particles[index].b, particles[index].alpha);
-      glutSolidSphere(particles[index].size, 150, 150);
+      solid ? glutSolidSphere(particles[index].size, 150, 150) : glutWireSphere(particles[index].size, 4, 4);
       glPopMatrix();
     } else {
       glBegin(GL_LINES);
@@ -311,7 +319,6 @@ void display()
 }
 
 ///////////////////////////////////////////////
-// TODO Add interactive functionality for the GUI
 
 void keyboard(unsigned char key, int x, int y)
 {
@@ -321,6 +328,27 @@ void keyboard(unsigned char key, int x, int y)
       break;
     case 'a':
       axisEnabled = !axisEnabled;
+      break;
+    case 'r':
+      if (red <= 0.95) red += 0.05;
+      break;
+    case 'e':
+      if (red >= 0.05) red -= 0.05;
+      break;
+    case 'g':
+      if (green <= 0.95) green += 0.05;
+      break;
+    case 'f':
+      if (green >= 0.05) green -= 0.05;
+      break;
+    case 'b':
+      if (blue <= 0.95) blue += 0.05;
+      break;
+    case 'v':
+      if (blue >= 0.05) blue -= 0.05;
+      break;
+    case 'w':
+      solid = !solid;
       break;
     default:
       break;
@@ -362,12 +390,12 @@ void animations()
 
       // Updating size, position and velocity
 
-      particles[index].size -= 0.01;
+      particles[index].size -= 0.005;
       particles[index].alpha -= 0.01;
 
-      particles[index].x += particles[index].vx;
-      particles[index].y += particles[index].vy;
-      particles[index].z += particles[index].vz;
+      particles[index].x += particles[index].vx + xWind / 2;
+      particles[index].y += particles[index].vy + gravity / 2;
+      particles[index].z += particles[index].vz + zWind / 2;
 
       particles[index].vx += xWind;
       particles[index].vy += gravity;
